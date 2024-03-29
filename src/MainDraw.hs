@@ -154,32 +154,7 @@ mymain fpath = do
       randomPts <- convexPts
 
       updateBufferMap refGlobal fpath
-      {--
-      ls <- readGLScriptDraw fpath 
-      mapM_ (\block -> do 
-                     bufferMap <- readIORef refGlobal <&> bufferMap_
-                     let mx = let s = head block 
-                                  m = DM.fromList $ cmdTable s 
-                                  cmd = case DM.lookup "cmd" m of
-                                               Just x -> x
-                                               Nothing -> error "Invalid format44"
-                                  key = case DM.lookup "key" m of
-                                                Just x -> x
-                                                Nothing -> error "Invalid format55"
-                                  shape = case DM.lookup "shape" m of
-                                                Just x -> x
-                                                Nothing -> error "Invalid format66"
-                                  ma = case cmd of 
-                                            c | c == "add" -> DM.insert key (shape, tail block) bufferMap 
-                                              | c == "del" -> DM.delete key bufferMap
-                                              | otherwise -> error "Invalid cmd99"
-                                  in ma
-                     modifyIORef refGlobal (\s -> s{bufferMap_ = mx})
-                     ) ls
-      --}
-                         
                                 
-      -- writeIORef refGlobal $ setDrawPts   globalRef spherePtsX
       modifyIORef refGlobal (\x -> x {drawPts_ = spherePtsX})
       modifyIORef refGlobal (\x -> x {randomPts_ = randomPts})
       refFrame <- timeNowMilli >>= \x -> newIORef FrameCount {frameTime = x, frameCount = 1, frameNewCount = 0, frameIndex = 0}
@@ -317,60 +292,6 @@ drawArrowProj ls (xy, yz, zx) = do
                      let yz = perpPlaneX (snd t) yzp 
                      drawArrow3d (fst t, yz) [colorChange 0.2 gray, white]
             ) ls 
-
-{--
-intersectLineTri :: (Floating a, Ord a) => (Vertex3 a, Vertex3 a) -> (Vertex3 a, Vertex3 a, Vertex3 a) -> Maybe (Vertex3 a)
-intersectLineTri (p0, p1) q@(q0, q1, q2) = isPerp || isPara ? Nothing $ Just vx 
-  where
-   epsilon = 0.000001
-   vPerp = crossF (q1 -: q0) (q1 -: q2)
-   isPerp = case vPerp of 
-              Just v -> False 
-              Nothing -> True 
-   -- is line parallel to the plane q
-   p0' = perpPlaneX p0 q 
-   p1' = perpPlaneX p1 q
-   v01  = p0 -: p1
-   v01' = p0' -: p1'  
-   ang = angle2Vector v01 v01'
-   h0 = nr $ p0 -: p0' 
-   h1 = nr $ p1 -: p1' 
-   isPara = abs (h0 - h1) < epsilon
-   vx | h0 > h1 = let u = uv v01' 
-                      x = h0/(tan ang)
-                  in p0' +: (x *: u)
-      | otherwise = let u = uv $ (- v01') 
-                        x = h1/(tan ang)
-                    in p1' +: (x *: u)
---}
-
-drawSphereNX_2::Int -> GLdouble ->Int -> Bool -> [Color3 GLdouble] -> IO()
-drawSphereNX_2 n radius k isFilled cc = do
-    let δ = 2*pi / rf n :: GLdouble
-        ϵ = pi / rf n :: GLdouble
-        r = radius
-        fx::Int -> Int -> GLdouble
-        fx i j = let i' = rf i
-                     j' = rf j
-                     α  = δ * i'
-                     β  = ϵ * j'
-                 in r * cos β * cos α
-        fy::Int -> Int -> GLdouble
-        fy i j = let i' = rf i
-                     j' = rf j
-                     α  = δ * i'
-                     β  = ϵ * j'
-                 in r * cos β * sin α
-        fz::Int -> Int -> GLdouble
-        fz i j = let i' = rf i
-                     j' = rf j
-                     α  = δ * i'
-                     β  = ϵ * j'
-                 in r * sin β 
-        ss = [[Vertex3 (fx i j)
-                       (fy i j)
-                       (fz i j) | i <- take (n+1) [0..n]] | j <- let m = div n 2 in take (k+1) [m, m - 1 .. -m]] :: [[Vertex3 GLdouble]]
-        in drawParamSphereX isFilled ss cc
 
 currRotatedAxis :: IORef CameraRot -> IO ()
 currRotatedAxis refCamRot = do
@@ -658,15 +579,6 @@ mainLoop (w3d, w2d) (refCamRot3d, refCamRot2d) refGlobal refGlobalFrame animaSta
   currRotatedAxis refCamRot3d
 
   -- xxx
-  when False $ do
-    let vx = Vertex3
-    let lc = [cyan, magenta, yellow]
-    let t@(a, b) = (Vertex3 0 0 0, Vertex3 0 0.2 0 :: Vertex3 GLdouble) 
-    let r = 0.05
-    let pts = circlePtD (Vertex3 0 0 0) 0.2 4 
-    let zpts = zip (init pts) (tail pts)
-    mapM_ (\t -> drawCylinder3d r t (Vector3 0 0 1, pi/4) (Vector3 0 0 1, -pi/4) lc) zpts
-    -- drawCylinder3d r t lc
   when True $ do
     let vx = Vertex3
     let lc = join $ repeat [cyan, magenta, yellow]
@@ -802,97 +714,6 @@ mainLoop (w3d, w2d) (refCamRot3d, refCamRot2d) refGlobal refGlobalFrame animaSta
                   drawArrowX t 
            ) $ pair pts 
 
-  when False $ do
-    let pts = ptsList 
-    -- drawPolygon pts
-    -- cylinderArrow 0.5 [yellow, green, blue]
-    drawCircle' (Vertex3 0 0 0) 0.05 
-    drawArrow (Vertex3 0.1 0.1 0, Vertex3 0.5 0.5 0) 
-    drawArrow (Vertex3 0.0 0.0 0, Vertex3 (-0.5) 0.5 0) 
-    preservingMatrix $ do
-      GL.scale (1 :: GLfloat) 1 1
-      drawArrow (Vertex3 0.0 0.0 0, Vertex3 (-0.5) 0.5 0) 
-    preservingMatrix $ do
-      drawArrow (Vertex3 0.1 0.1 0, Vertex3 0.5 0.5 0) 
-
-  when False $ do
-    let pts = ptsList 
-    let co = join $ repeat [green, yellow, cyan, gray, magenta, white, blue]
-    preservingMatrix $ 
-      mapM_ (\(c, v) -> do 
-                  drawDotXX c v 0.02
-           ) $ zip co pts 
-  
-  r2 <- redisGet "r2" <&> \s -> case s of
-                                  Just x -> read x :: Bool 
-                                  Nothing -> False
-
-  rls <- redisGet "rls" <&> \s -> case s of
-                                  Just x -> read x :: [GLfloat] 
-                                  Nothing -> [0.02, 0.02 + 0.02 .. 0.1] 
-  when r2 $ do
-    let ax = [0.02, 0.02 + 0.02 .. 0.90] :: [GLdouble] 
-    let cx = map (\y -> Vertex3 0 y 0) ax 
-    let cy = map (\(x, y) -> Vertex3 x y 0) $ zip ax ax 
-    let pair x = zip (init x) (tail x)
-    let co = join $ repeat [green, yellow, cyan, gray, magenta, white, blue]
-    preservingMatrix $ do 
-      -- translate (Vector3 (-0.90) 0 0 :: Vector3 GLdouble) 
-      mapM_ (\t -> do 
-                  drawArrowN1 t 
-                  -- drawArrowX t 
-           ) $ zip cx cy 
-      logFileG ["cx=" ++ show cx]
-      logFileG ["cy=" ++ show cy]
-      logFileG ["zipcxcy=" ++ (show $ zip cx cy)]
-
-  when False $ do
-    preservingMatrix $ do 
-      let cc = [cyan, magenta, yellow]
-      drawArrowX (Vertex3 0 0 0, Vertex3 0.1 0.1 0)    
-    preservingMatrix $ do 
-      let cc = [cyan, magenta, yellow]
-      drawArrowX (Vertex3 0.1 0.1 0, Vertex3 (-0.3) 0.5 0)    
-
-  when False $ do
-    let width = 0.3
-    let height = 0.2
-    delta <- getRedisXf "delta" <&> rf
-    str <- getRedisXStr "str"
-    let s = DT.readMaybe str :: (Maybe [GLfloat])
-    let ls = fromMaybe [] s
-    -- n = len ls > 0 ? last ls $ 10
-    n <- getRedisXf "n" <&> rf
-
-    let anima1 = 6
-    xx <- getRedisX "int"
-    let interval = xx
-    (isNext1, index1, animaState1) <- readAnimaState animaStateArr anima1 interval
-    let del = pi/100
-    let lv = [[Vertex3 (1/n*x) (1/n*y) 0 | x <- [0.0..n]]| y <- [0.0..n]] :: [[Vertex3 GLfloat]]
-    renderPrimitive Points $ mapM_(\v@(Vertex3 x y z) -> do
--- /Users/aaa/myfile/bitbucket/tmp/xx_6177.x
-      let dl = sdfRect3d (Vertex3 0.2 0.3 0.4) v False
-      case dl of
-         -- sd | abs sd <= delta -> do color yellow; vertex (let m = rotz $ (del * rf index1) in mulMat m v);
-         sd | abs sd <= delta -> do
-              let m = rotx $ (del * rf index1)
-              color magenta; vertex $ mulMat m $ v;
-              color yellow;  vertex $ mulMat m $ nx_1 v;
-              color blue;    vertex $ mulMat m $ nx_2 v;
-              color cyan;    vertex $ mulMat m $ nx_12 v;
-            --  | sd > 0          -> do color gray;    vertex v; vertex $ nx_1 v; vertex $ nx_2 v; vertex $ nx_12 v;
-            --  | otherwise       -> do color white;   vertex v; vertex $ nx_1 v; vertex $ nx_2 v; vertex $ nx_12 v;
-            | otherwise -> return ()
-     ) $ join lv
-
-
-    if index1 >= 200 then do
-      writeAnimaState animaStateArr animaState1{animaIndex_ = 0}
-    else do
-      writeAnimaState animaStateArr animaState1
-
-  drawDot (Vertex3 0 0 0)
   endWindow2d w2d
 
   -- saveImageFrame w animaStateArr

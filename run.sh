@@ -52,7 +52,7 @@ ghcProfile="/usr/local/bin/ghc -i$HOME/myfile/bitbucket/haskelllib -prof -fprof-
 # stack build --ghc-options=-O2 haskellwebapp2 
 
 old=$(timeNow)
-name="PlotGeometry"
+name="PlotGeometry-bug"
 
 if [[ "$#" -eq 1 ]]; then
     # KEY: build only
